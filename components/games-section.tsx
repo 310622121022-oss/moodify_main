@@ -111,6 +111,7 @@ const gameDetailsMap: Readonly<{ [key: string]: GameDetails }> = {
 export function GamesSection() {
   const { user } = useAuth();
   const [games, setGames] = useState<Game[]>([]);
+  const [filterCategory, setFilterCategory] = useState<string | null>(null);
   const [pinnedGames, setPinnedGames] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
@@ -265,8 +266,26 @@ export function GamesSection() {
 
   return (
     <>
+      {/* Filters */}
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <button
+          onClick={() => setFilterCategory(null)}
+          className={`px-3 py-1 rounded-full text-sm font-medium border-2 ${filterCategory === null ? 'bg-primary text-white border-primary' : 'bg-white/60 text-primary border-gray-200'}`}
+        >
+          All
+        </button>
+        {Array.from(new Set(games.map(g => g.category))).map((cat) => (
+          <button
+            key={cat}
+            onClick={() => setFilterCategory(cat)}
+            className={`px-3 py-1 rounded-full text-sm font-medium border-2 ${filterCategory === cat ? 'bg-primary text-white border-primary' : 'bg-white/60 text-primary border-gray-200'}`}
+          >
+            {cat}
+          </button>
+        ))}
+      </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-        {games.map((game, index) => {
+        {(filterCategory ? games.filter(g => g.category === filterCategory) : games).map((game, index) => {
           const isPinned = pinnedGames.has(game.id);
           const colorFrom = game.color_from || (game as any).colors?.split('-')[0] || '#9b87f5';
           const colorTo = game.color_to || (game as any).colors?.split('-')[1] || '#7c3aed';
