@@ -2,6 +2,7 @@ import './globals.css';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import { AuthProvider } from '@/lib/auth-context';
+import StructuredData from '@/components/structured-data';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -19,6 +20,20 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <AuthProvider>
+          {/* Base WebSite schema for all pages */}
+          <StructuredData
+            script={{
+              "@context": "https://schema.org",
+              "@type": "WebSite",
+              "name": "MoodLift",
+              "url": "https://your-production-url.example.com",
+              "potentialAction": {
+                "@type": "SearchAction",
+                "target": "https://your-production-url.example.com/search?q={search_term_string}",
+                "query-input": "required name=search_term_string"
+              }
+            }}
+          />
           {children}
         </AuthProvider>
       </body>

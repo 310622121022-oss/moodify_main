@@ -9,11 +9,14 @@ import { ProtectedRoute } from '@/components/protected-route';
 import { useAuth } from '@/lib/auth-context';
 import { AppFooter } from '@/components/app-footer';
 import { getUserProgress, UserProgress } from '@/lib/progress-service';
+import StructuredData from '@/components/structured-data';
 
 function ProgressContent() {
   const { user } = useAuth();
   const [progress, setProgress] = useState<UserProgress | null>(null);
   const [loading, setLoading] = useState(true);
+  const [todos, setTodos] = useState<{ id: string; text: string; done: boolean }[]>([]);
+  const [newTodo, setNewTodo] = useState('');
   const fetchProgress = useCallback(async () => {
     if (!user) return;
     setLoading(true);
@@ -27,6 +30,47 @@ function ProgressContent() {
       fetchProgress();
     }
   }, [user, fetchProgress]);
+
+  // load todos for this user from localStorage
+  useEffect(() => {
+    if (!user) {
+      setTodos([]);
+      return;
+    }
+    try {
+      const key = `todos_${user.id}`;
+      const raw = localStorage.getItem(key);
+      if (raw) setTodos(JSON.parse(raw));
+    } catch (e) {
+      console.error('Error loading todos:', e);
+    }
+  }, [user]);
+
+  // persist todos
+  useEffect(() => {
+    if (!user) return;
+    try {
+      const key = `todos_${user.id}`;
+      localStorage.setItem(key, JSON.stringify(todos));
+    } catch (e) {
+      console.error('Error saving todos:', e);
+    }
+  }, [todos, user]);
+
+  const addTodo = () => {
+    const text = newTodo.trim();
+    if (!text || !user) return;
+    setTodos(prev => [{ id: `${Date.now()}`, text, done: false }, ...prev]);
+    setNewTodo('');
+  };
+
+  const toggleTodo = (id: string) => {
+    setTodos(prev => prev.map(t => (t.id === id ? { ...t, done: !t.done } : t)));
+  };
+
+  const removeTodo = (id: string) => {
+    setTodos(prev => prev.filter(t => t.id !== id));
+  };
 
   if (loading) {
     return (
@@ -53,6 +97,25 @@ function ProgressContent() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-white via-secondary/20 to-accent/10">
+      <StructuredData script={{
+        "@context": "https://schema.org",
+        "@type": "WebPage",
+        "name": "MoodLift Progress",
+        "url": "https://your-production-url.example.com/progress",
+        "description": "Track your weekly activity, achievements and mood progress"
+      }} />
+      {/* Course schema for the AI Mood Assessment featured on the site */}
+      <StructuredData script={{
+        "@context": "https://schema.org",
+        "@type": "Course",
+        "name": "AI Mood Assessment",
+        "description": "A quick 2-3 minute psychometric mood assessment that provides personalized insights and recommended activities.",
+        "provider": {
+          "@type": "Organization",
+          "name": "MoodLift",
+          "url": "https://your-production-url.example.com"
+        }
+      }} />
       <nav className="border-b bg-white/80 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-4 h-16">
@@ -149,6 +212,45 @@ function ProgressContent() {
                   </div>
                 );
               })}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-2 mb-8">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="w-5 h-5 text-accent" />
+              Todo List
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex gap-2">
+                <input
+                  value={newTodo}
+                  onChange={(e) => setNewTodo(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') addTodo(); }}
+                  placeholder="Add a quick task (e.g., Play a 5-min breathing game)"
+                  className="flex-1 px-3 py-2 rounded border bg-white text-primary"
+                />
+                <Button onClick={addTodo} className="whitespace-nowrap">Add</Button>
+              </div>
+
+              <div className="space-y-2">
+                {todos.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No todos yet. Add one to stay focused.</p>
+                ) : (
+                  todos.map(t => (
+                    <div key={t.id} className="flex items-center justify-between p-2 bg-secondary/20 rounded">
+                      <div className="flex items-center gap-3">
+                        <input type="checkbox" checked={t.done} onChange={() => toggleTodo(t.id)} />
+                        <span className={`${t.done ? 'line-through text-muted-foreground' : 'text-primary'}`}>{t.text}</span>
+                      </div>
+                      <Button variant="ghost" onClick={() => removeTodo(t.id)}>Remove</Button>
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
           </CardContent>
         </Card>

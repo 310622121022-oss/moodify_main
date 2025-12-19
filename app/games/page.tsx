@@ -8,10 +8,31 @@ import { GamesSection } from '@/components/games-section';
 import { UserProfile } from '@/components/user-profile';
 import { FAQSection } from '@/components/faq-section';
 import { AppFooter } from '@/components/app-footer';
+import StructuredData from '@/components/structured-data';
 
 function GamesHubContent() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-white via-secondary/20 to-accent/10">
+      <StructuredData
+        script={{
+          "@context": "https://schema.org",
+          "@type": "CollectionPage",
+          "name": "MoodLift Games & Activities",
+          "description": "Breathing exercises, grounding techniques and short wellness games to improve emotional health",
+          "url": "https://your-production-url.example.com/games"
+        }}
+      />
+      {/* ItemList of featured activities (using visible site content) */}
+      <StructuredData script={{
+        "@context": "https://schema.org",
+        "@type": "ItemList",
+        "name": "Featured Activities",
+        "itemListElement": [
+          { "@type": "ListItem", "position": 1, "url": "https://your-production-url.example.com/games/box-breathing", "name": "Box Breathing" },
+          { "@type": "ListItem", "position": 2, "url": "https://your-production-url.example.com/games/diaphragmatic-breathing", "name": "Diaphragmatic Breathing" },
+          { "@type": "ListItem", "position": 3, "url": "https://your-production-url.example.com/games/four-seven-eight-breathing", "name": "4-7-8 Breathing" }
+        ]
+      }} />
       <nav className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">

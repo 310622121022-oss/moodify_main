@@ -27,6 +27,7 @@ export interface UserProgress {
   achievements: { title: string; earned: boolean; description: string }[];
 }
 
+
 export async function saveGameSession(
   userId: string,
   gameTitle: string,
@@ -219,4 +220,48 @@ function calculateAchievements(totalGames: number, assessments: any[], sessions:
   ];
 
   return achievements;
+}
+
+export async function getContributionHeatmap(userId: string): Promise<{ date: string; count: number }[]> {
+  try {
+    const now = new Date();
+    const days = 365;
+    const start = new Date(now.getTime() - (days - 1) * 24 * 60 * 60 * 1000);
+
+    // initialize map
+    const map: { [date: string]: number } = {};
+    for (let i = 0; i < days; i++) {
+      const d = new Date(start);
+      d.setDate(start.getDate() + i);
+      const key = d.toISOString().split('T')[0];
+      map[key] = 0;
+    }
+
+    const { data: sessions, error } = await supabase
+      .from('game_sessions')
+      .select('completed_at')
+      .eq('user_id', userId)
+      .gte('completed_at', start.toISOString())
+      .order('completed_at', { ascending: true });
+
+    if (error) throw error;
+
+    (sessions || []).forEach((s: any) => {
+      const key = new Date(s.completed_at).toISOString().split('T')[0];
+      if (map[key] !== undefined) map[key] = (map[key] || 0) + 1;
+    });
+
+    const result: { date: string; count: number }[] = [];
+    for (let i = 0; i < days; i++) {
+      const d = new Date(start);
+      d.setDate(start.getDate() + i);
+      const key = d.toISOString().split('T')[0];
+      result.push({ date: key, count: map[key] || 0 });
+    }
+
+    return result;
+  } catch (e) {
+    console.error('Error building contribution heatmap:', e);
+    return [];
+  }
 }

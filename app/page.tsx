@@ -15,6 +15,7 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { saveDailyMood, getGameRecommendations, type MoodType } from '@/lib/mood-service';
 import { AppFooter } from '@/components/app-footer';
+import StructuredData from '@/components/structured-data';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -95,6 +96,46 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-white via-secondary/20 to-accent/10">
+      <StructuredData
+        script={{
+          "@context": "https://schema.org",
+          "@type": "WebPage",
+          "name": "MoodLift - Home",
+          "url": "https://your-production-url.example.com/",
+          "description": "AI-powered wellness games to improve emotional well-being",
+        }}
+      />
+      {/* FAQ structured data (sampleed from site FAQs) */}
+      <StructuredData script={{
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "How long does each activity take?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Most activities take 3-15 minutes. Specific durations are displayed on each game card and in the detailed view."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "What's the difference between breathing exercises and grounding techniques?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Breathing exercises focus on controlling your breath to calm the nervous system. Grounding techniques use sensory awareness to bring you into the present moment and reduce anxiety."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Can I practice activities multiple times?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Yes! You can practice any activity as many times as you like. Regular practice enhances the benefits. We track your activity history in your dashboard."
+            }
+          }
+        ]
+      }} />
       <nav className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16 flex-wrap">
