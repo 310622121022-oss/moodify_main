@@ -11,6 +11,7 @@ import { GoogleSignInPopup } from '@/components/google-signin-popup';
 import { TestimonialCarousel } from '@/components/testimonial-carousel';
 import { QuoteCarousel } from '@/components/quote-carousel';
 import { FAQSection } from '@/components/faq-section';
+import ConsultantCarousel from '@/components/consultant-carousel';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { saveDailyMood, getGameRecommendations, getTodaysMood, type MoodType } from '@/lib/mood-service';
@@ -462,20 +463,10 @@ export default function Home() {
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-primary to-accent text-white border-0 shadow-2xl">
-          <CardContent className="p-6 sm:p-8 md:p-12 text-center">
-            <Trophy className="w-16 h-16 mx-auto mb-4" />
-            <h3 className="text-xl sm:text-2xl md:text-3xl font-bold mb-4">Activity</h3>
-            <p className="text-base sm:text-lg mb-4 sm:mb-6 text-white/90 max-w-2xl mx-auto">
-              Get professional guidance and support from certified experts to address your wellness needs
-            </p>
-            <a href="https://hexpertify.com" target="_blank" rel="noopener noreferrer">
-              <Button size="lg" variant="secondary" className="bg-white text-primary hover:bg-white/90 text-xs sm:text-sm md:text-base">
-                Connect with Expert
-              </Button>
-            </a>
-          </CardContent>
-        </Card>
+        <div className="mb-6">
+          <h2 className="text-xl sm:text-2xl font-semibold text-primary mb-4 text-center">Connect with Certified Therapists</h2>
+          <ConsultantCarousel />
+        </div>
 
         <div className="mt-12 sm:mt-16 md:mt-24">
           <div className="text-center mb-12">
