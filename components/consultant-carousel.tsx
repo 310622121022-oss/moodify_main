@@ -49,7 +49,78 @@ export default function ConsultantCarousel() {
   const rafRef = useRef<number | null>(null);
   const offsetRef = useRef(0);
   const pausedRef = useRef(false);
+  const totalWidthRef = useRef(0);
+  const resumeTimeoutRef = useRef<number | null>(null);
+  const isDraggingRef = useRef(false);
+  const dragStartXRef = useRef(0);
+  const dragStartOffsetRef = useRef(0);
+  const didDragRef = useRef(false);
+  const lastMoveTimeRef = useRef<number>(0);
+  const lastMoveXRef = useRef<number>(0);
+  const velocityRef = useRef<number>(0); // px/sec, positive means moving left
+  const momentumRafRef = useRef<number | null>(null);
   const speed = 40; // px per second
+
+  const wrapOffset = (value: number) => {
+    const width = totalWidthRef.current;
+    if (!width || width <= 0) return 0;
+    let next = value % width;
+    if (next < 0) next += width;
+    return next;
+  };
+
+  const applyTransform = () => {
+    const track = trackRef.current;
+    if (track) track.style.transform = `translate3d(${-offsetRef.current}px, 0, 0)`;
+  };
+
+  const scheduleResume = (delayMs = 900) => {
+    if (resumeTimeoutRef.current) window.clearTimeout(resumeTimeoutRef.current);
+    resumeTimeoutRef.current = window.setTimeout(() => {
+      pausedRef.current = false;
+    }, delayMs);
+  };
+
+  const stopMomentum = () => {
+    if (momentumRafRef.current) cancelAnimationFrame(momentumRafRef.current);
+    momentumRafRef.current = null;
+  };
+
+  const startMomentum = (initialVelocityPxPerSec: number) => {
+    stopMomentum();
+
+    // Keep paused during momentum; we'll resume after it settles.
+    pausedRef.current = true;
+    velocityRef.current = initialVelocityPxPerSec;
+
+    let lastTime: number | null = null;
+    const deceleration = 2600; // px/sec^2 (tuned for a quick, smooth settle)
+
+    const step = (now: number) => {
+      if (lastTime == null) lastTime = now;
+      const dt = (now - lastTime) / 1000;
+      lastTime = now;
+
+      const v0 = velocityRef.current;
+      if (Math.abs(v0) < 40) {
+        stopMomentum();
+        scheduleResume();
+        return;
+      }
+
+      offsetRef.current = wrapOffset(offsetRef.current + v0 * dt);
+      applyTransform();
+
+      // Apply constant deceleration opposite to direction of travel.
+      const dv = deceleration * dt;
+      if (v0 > 0) velocityRef.current = Math.max(0, v0 - dv);
+      else velocityRef.current = Math.min(0, v0 + dv);
+
+      momentumRafRef.current = requestAnimationFrame(step);
+    };
+
+    momentumRafRef.current = requestAnimationFrame(step);
+  };
 
   // continuous animation effect
   useEffect(() => {
@@ -57,18 +128,23 @@ export default function ConsultantCarousel() {
     const track = trackRef.current;
     if (!container || !track) return;
 
-    const totalWidth = track.scrollWidth / 2 || 0; // track contains two copies
+    const recalc = () => {
+      totalWidthRef.current = track.scrollWidth / 2 || 0; // track contains two copies
+    };
+
+    recalc();
     let lastTime: number | null = null;
 
     function step(now: number) {
       if (lastTime == null) lastTime = now;
       const delta = (now - lastTime) / 1000;
       lastTime = now;
-      if (!pausedRef.current && totalWidth > 0) {
+      const width = totalWidthRef.current;
+      if (!pausedRef.current && width > 0) {
         offsetRef.current += speed * delta;
-        if (offsetRef.current >= totalWidth) offsetRef.current -= totalWidth;
+        if (offsetRef.current >= width) offsetRef.current -= width;
         const cur = trackRef.current;
-        if (cur) cur.style.transform = `translateX(${-offsetRef.current}px)`;
+        if (cur) cur.style.transform = `translate3d(${-offsetRef.current}px, 0, 0)`;
       }
       rafRef.current = requestAnimationFrame(step);
     }
@@ -78,13 +154,21 @@ export default function ConsultantCarousel() {
     const onEnter = () => { pausedRef.current = true; };
     const onLeave = () => { pausedRef.current = false; };
 
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(() => recalc()) : null;
+    if (ro) {
+      ro.observe(container);
+      ro.observe(track);
+    }
+
     container.addEventListener('mouseenter', onEnter);
     container.addEventListener('mouseleave', onLeave);
 
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      stopMomentum();
       container.removeEventListener('mouseenter', onEnter);
       container.removeEventListener('mouseleave', onLeave);
+      if (ro) ro.disconnect();
     };
   }, [consultants]);
 
@@ -161,8 +245,88 @@ export default function ConsultantCarousel() {
   return (
     <div
       ref={containerRef}
-      className="relative w-full overflow-hidden"
-      style={{ msOverflowStyle: 'none', scrollbarWidth: 'none' }}
+      className="relative w-full overflow-hidden select-none cursor-grab active:cursor-grabbing"
+      style={{ msOverflowStyle: 'none', scrollbarWidth: 'none', touchAction: 'pan-y' }}
+      onPointerDown={(e) => {
+        // Left button / touch only
+        if (e.pointerType === 'mouse' && e.button !== 0) return;
+        if (resumeTimeoutRef.current) window.clearTimeout(resumeTimeoutRef.current);
+
+        stopMomentum();
+
+        pausedRef.current = true;
+        isDraggingRef.current = true;
+        didDragRef.current = false;
+        dragStartXRef.current = e.clientX;
+        dragStartOffsetRef.current = offsetRef.current;
+
+        lastMoveTimeRef.current = performance.now();
+        lastMoveXRef.current = e.clientX;
+        velocityRef.current = 0;
+
+        try {
+          (e.currentTarget as HTMLDivElement).setPointerCapture(e.pointerId);
+        } catch {
+          // no-op
+        }
+      }}
+      onPointerMove={(e) => {
+        if (!isDraggingRef.current) return;
+        const delta = dragStartXRef.current - e.clientX;
+        if (Math.abs(delta) > 4) didDragRef.current = true;
+
+        offsetRef.current = wrapOffset(dragStartOffsetRef.current + delta);
+        applyTransform();
+
+        const now = performance.now();
+        const dt = (now - lastMoveTimeRef.current) / 1000;
+        if (dt > 0) {
+          const dx = lastMoveXRef.current - e.clientX;
+          // velocity is in the same direction as offset (drag left increases offset)
+          velocityRef.current = dx / dt;
+          lastMoveTimeRef.current = now;
+          lastMoveXRef.current = e.clientX;
+        }
+      }}
+      onPointerUp={(e) => {
+        if (!isDraggingRef.current) return;
+        isDraggingRef.current = false;
+
+        try {
+          (e.currentTarget as HTMLDivElement).releasePointerCapture(e.pointerId);
+        } catch {
+          // no-op
+        }
+
+        // Add a little inertia so sliding feels natural.
+        const v = velocityRef.current;
+        if (Math.abs(v) > 200) startMomentum(v);
+        else scheduleResume();
+      }}
+      onPointerCancel={() => {
+        if (!isDraggingRef.current) return;
+        isDraggingRef.current = false;
+        scheduleResume();
+      }}
+      onWheel={(e) => {
+        // Support trackpads / shift+wheel for horizontal scrolling.
+        const useDelta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : (e.shiftKey ? e.deltaY : 0);
+        if (!useDelta) return;
+
+        e.preventDefault();
+        if (resumeTimeoutRef.current) window.clearTimeout(resumeTimeoutRef.current);
+        pausedRef.current = true;
+        offsetRef.current = wrapOffset(offsetRef.current + useDelta);
+        applyTransform();
+        scheduleResume();
+      }}
+      onClickCapture={(e) => {
+        // Prevent accidental clicks when the user was dragging.
+        if (!didDragRef.current) return;
+        e.preventDefault();
+        e.stopPropagation();
+        didDragRef.current = false;
+      }}
     >
       <div ref={trackRef} className="flex gap-4 will-change-transform">
         {consultants.map((c) => (
