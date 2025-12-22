@@ -567,35 +567,31 @@ export default function Home() {
           </div>
         </div>
 
-        <Card className="mb-12 overflow-hidden border-0 bg-accent/20">
-          <CardContent className="p-4 sm:p-6 md:p-8">
-            <div className="flex flex-col md:flex-row items-center gap-6">
-              <div className="flex-1 text-center md:text-left">
-                <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-primary mb-2">
-                  Take Our AI Mood Assessment
-                </h2>
-                <p className="text-muted-foreground mb-4">
-                  Get personalized insights about your emotional well-being with our psychometric assessment. Takes just 2-3 minutes.
-                </p>
-                <div className="w-full md:w-auto">
-                  <Button
-                    className="w-full md:w-auto h-11 rounded-md px-8 bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-opacity text-xs sm:text-sm md:text-base"
-                    onClick={handleAssessmentClick}
-                  >
-                    Start Assessment
-                  </Button>
+        <Card className="mb-12 overflow-hidden rounded-[24px] border-2 border-secondary/60 bg-secondary/15">
+          <CardContent className="p-5 sm:p-7 md:p-10">
+            <div className="flex flex-col md:flex-row md:items-center gap-6">
+              <div className="flex items-start gap-6 flex-1">
+                <div className="shrink-0 w-[88px] h-[88px] rounded-[24px] bg-primary flex items-center justify-center">
+                  <ClipboardList className="w-10 h-10 text-white" aria-hidden />
+                </div>
+
+                <div className="min-w-0">
+                  <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-primary leading-tight">
+                    Confused About Your Mental State?
+                  </h2>
+                  <p className="mt-2 text-base sm:text-lg text-muted-foreground leading-relaxed">
+                    Take a short scientifically validated assessment to get clarity on your mood, stress, or anxiety.
+                  </p>
                 </div>
               </div>
 
-              <div className="w-full md:w-auto flex justify-center md:justify-end">
-                <div className="w-[160px] sm:w-[200px] md:w-[220px] aspect-square rounded-3xl bg-muted flex items-center justify-center overflow-hidden">
-                  <img
-                    src="/assessment-boy.png"
-                    alt="Assessment illustration"
-                    className="h-full w-full object-contain"
-                    draggable={false}
-                  />
-                </div>
+              <div className="w-full md:w-auto md:ml-auto">
+                <Button
+                  className="w-full md:w-auto h-12 sm:h-14 rounded-full px-10 bg-primary hover:bg-primary/90 text-base sm:text-lg font-semibold"
+                  onClick={handleAssessmentClick}
+                >
+                  Start Assessment
+                </Button>
               </div>
             </div>
           </CardContent>
