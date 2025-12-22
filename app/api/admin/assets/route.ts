@@ -20,6 +20,18 @@ async function ensureBucketExists(supabase: any) {
     
     if (!assetsBucket) {
       await supabase.storage.createBucket('assets', { public: true });
+      return;
+    }
+
+    // If the bucket already exists, ensure it's public so user-facing pages
+    // can load images via the /object/public URL.
+    const isPublic = !!(assetsBucket.public ?? assetsBucket.isPublic ?? assetsBucket.is_public);
+    if (!isPublic) {
+      try {
+        await supabase.storage.updateBucket('assets', { public: true });
+      } catch (err) {
+        console.error('Error updating assets bucket visibility:', err);
+      }
     }
   } catch (err) {
     console.error('Error ensuring bucket exists:', err);

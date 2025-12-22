@@ -15,7 +15,41 @@ interface Game {
   icon: string;
   color_from: string;
   color_to: string;
+  cover_image_url?: string;
 }
+
+const tailwindColorToHex: Record<string, string> = {
+  'violet-400': '#a78bfa',
+  'violet-500': '#8b5cf6',
+  'purple-400': '#c084fc',
+  'purple-500': '#a855f7',
+  'pink-400': '#f472b6',
+  'pink-500': '#ec4899',
+  'rose-400': '#fb7185',
+  'rose-500': '#f43f5e',
+  'orange-400': '#fb923c',
+  'orange-500': '#f97316',
+  'amber-400': '#fbbf24',
+  'amber-500': '#f59e0b',
+  'green-400': '#4ade80',
+  'green-500': '#22c55e',
+  'emerald-400': '#34d399',
+  'emerald-500': '#10b981',
+  'teal-400': '#2dd4bf',
+  'teal-500': '#14b8a6',
+  'cyan-400': '#22d3ee',
+  'cyan-500': '#06b6d4',
+  'blue-400': '#60a5fa',
+  'blue-500': '#3b82f6',
+  'indigo-400': '#818cf8',
+  'indigo-500': '#6366f1',
+};
+
+const toHex = (value: string) => {
+  if (!value) return '#9b87f5';
+  if (value.startsWith('#')) return value;
+  return tailwindColorToHex[value] || '#9b87f5';
+};
 
 const categoryToRoute: Record<string, string> = {
   'Box Breathing': 'box-breathing',
@@ -90,13 +124,26 @@ export default function AllActivities() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {games.map((game) => {
               const route = categoryToRoute[game.title] || game.title.toLowerCase().replace(/\s+/g, '-');
-              const colorFrom = game.color_from.split('-')[0];
-              const colorTo = game.color_to.split('-')[0];
+              const colorFrom = toHex(game.color_from);
+              const colorTo = toHex(game.color_to);
               
               return (
                 <Link key={game.id} href={`/games/${route}`}>
                   <Card className="h-full cursor-pointer hover:shadow-lg transition-shadow border-2 overflow-hidden">
-                    <div className={`bg-gradient-to-r from-${colorFrom}-300 to-${colorTo}-300 h-24`} />
+                    <div className="relative h-24 overflow-hidden">
+                      {game.cover_image_url ? (
+                        <img
+                          src={game.cover_image_url}
+                          alt={game.title}
+                          className="absolute inset-0 w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div
+                          className="absolute inset-0"
+                          style={{ background: `linear-gradient(90deg, ${colorFrom}, ${colorTo})` }}
+                        />
+                      )}
+                    </div>
                     <CardContent className="p-6">
                       <div className="flex items-center gap-2 mb-3">
                         <span className="text-xs font-semibold text-gray-500 uppercase">{game.category}</span>

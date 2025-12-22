@@ -59,47 +59,71 @@ export async function POST(request: NextRequest) {
 
     const gameId = data?.[0]?.id;
     if (gameId) {
-      // Try to update cover_image_url separately
-      if (cover_image_url) {
-        try {
-          await supabase.from('games').update({ cover_image_url }).eq('id', gameId);
-        } catch (err) {
-          console.log('Could not save cover_image_url directly');
+      // Persist cover_image_url (and allow clearing it by sending empty string)
+      if (cover_image_url !== undefined) {
+        const { error: coverErr } = await supabase
+          .from('games')
+          .update({ cover_image_url })
+          .eq('id', gameId);
+
+        if (coverErr) {
+          const code = (coverErr as any)?.code;
+          const message = (coverErr as any)?.message || 'Failed to save cover image';
+          if (code === 'PGRST204' && /cover_image_url/i.test(message)) {
+            return NextResponse.json(
+              {
+                code,
+                error:
+                  "Database schema is missing 'games.cover_image_url'. Apply the Supabase migrations or run: ALTER TABLE games ADD COLUMN IF NOT EXISTS cover_image_url text;",
+              },
+              { status: 400 }
+            );
+          }
+          return NextResponse.json({ error: message, code }, { status: 500 });
         }
       }
 
       // Try to update is_popular if provided
       if (typeof is_popular !== 'undefined') {
-        try {
-          await supabase.from('games').update({ is_popular }).eq('id', gameId);
-        } catch (err) {
+        const { error: popErr } = await supabase
+          .from('games')
+          .update({ is_popular })
+          .eq('id', gameId);
+        if (popErr) {
           console.log('Could not save is_popular directly');
         }
       }
 
       // Try to update colors
-      try {
-        await supabase.from('games').update({ colors }).eq('id', gameId);
-      } catch (err) {
+      const { error: colorsErr } = await supabase
+        .from('games')
+        .update({ colors })
+        .eq('id', gameId);
+      if (colorsErr) {
         console.log('Could not save colors directly');
       }
+
+      // Re-fetch to ensure persisted fields (cover_image_url, is_popular, etc.)
+      const { data: fetched, error: fetchErr } = await supabase
+        .from('games')
+        .select('*')
+        .eq('id', gameId)
+        .maybeSingle();
+      if (fetchErr) {
+        console.error('Failed to re-fetch created game:', fetchErr);
+      }
+
+      const game = fetched || data?.[0];
+      if (game) {
+        (game as any).colors = (game as any).colors || colors;
+        (game as any).color_from = (game as any).color_from || color_from || '#3B82F6';
+        (game as any).color_to = (game as any).color_to || color_to || '#8B5CF6';
+      }
+
+      return NextResponse.json({ game });
     }
 
-    // Return game with computed colors for frontend
-    const game = data?.[0];
-    if (game) {
-      (game as any).colors = colors;
-      if (cover_image_url) {
-        (game as any).cover_image_url = cover_image_url;
-      }
-      if (typeof is_popular !== 'undefined') {
-        (game as any).is_popular = !!is_popular;
-      }
-      (game as any).color_from = color_from || '#3B82F6';
-      (game as any).color_to = color_to || '#8B5CF6';
-    }
-
-    return NextResponse.json({ game });
+    return NextResponse.json({ game: data?.[0] });
   } catch (error) {
     console.error('Error creating game:', error);
     return NextResponse.json({ error: 'Failed to create game' }, { status: 500 });
@@ -134,12 +158,27 @@ export async function PUT(request: NextRequest) {
     if (error) throw error;
 
 
-    // Try to update cover_image_url and is_popular separately
-    if (cover_image_url) {
-      try {
-        await supabase.from('games').update({ cover_image_url }).eq('id', id);
-      } catch (err) {
-        console.log('Could not save cover_image_url directly');
+    // Persist cover_image_url (and allow clearing it by sending empty string)
+    if (cover_image_url !== undefined) {
+      const { error: coverErr } = await supabase
+        .from('games')
+        .update({ cover_image_url })
+        .eq('id', id);
+
+      if (coverErr) {
+        const code = (coverErr as any)?.code;
+        const message = (coverErr as any)?.message || 'Failed to save cover image';
+        if (code === 'PGRST204' && /cover_image_url/i.test(message)) {
+          return NextResponse.json(
+            {
+              code,
+              error:
+                "Database schema is missing 'games.cover_image_url'. Apply the Supabase migrations or run: ALTER TABLE games ADD COLUMN IF NOT EXISTS cover_image_url text;",
+            },
+            { status: 400 }
+          );
+        }
+        return NextResponse.json({ error: message, code }, { status: 500 });
       }
     }
 
@@ -158,15 +197,22 @@ export async function PUT(request: NextRequest) {
       console.log('Could not save colors directly');
     }
 
+    // Re-fetch to ensure persisted fields (cover_image_url, is_popular, etc.)
+    const { data: fetched, error: fetchErr } = await supabase
+      .from('games')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+    if (fetchErr) {
+      console.error('Failed to re-fetch updated game:', fetchErr);
+    }
+
     // Return game with computed colors for frontend
-    const game = data?.[0];
+    const game = fetched || data?.[0];
     if (game) {
-      (game as any).colors = colors;
-      if (cover_image_url) {
-        (game as any).cover_image_url = cover_image_url;
-      }
-      (game as any).color_from = color_from || '#3B82F6';
-      (game as any).color_to = color_to || '#8B5CF6';
+      (game as any).colors = (game as any).colors || colors;
+      (game as any).color_from = (game as any).color_from || color_from || '#3B82F6';
+      (game as any).color_to = (game as any).color_to || color_to || '#8B5CF6';
     }
 
     return NextResponse.json({ game });

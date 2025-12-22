@@ -85,13 +85,18 @@ export default function GamesCoversAdmin() {
         body: JSON.stringify(selectedGame),
       });
 
-      if (!response.ok) throw new Error('Failed to save');
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        console.error('Save cover error:', data);
+        throw new Error(data?.error || `Failed to save (${response.status})`);
+      }
 
       setSuccess('Game cover updated successfully!');
       await fetchGames();
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
-      setError('Failed to save game cover');
+      const message = (err as any)?.message || 'Failed to save game cover';
+      setError(message);
     } finally {
       setSaving(false);
     }

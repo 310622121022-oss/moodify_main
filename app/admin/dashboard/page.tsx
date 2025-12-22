@@ -406,7 +406,11 @@ export default function AdminDashboard() {
         body: JSON.stringify(selectedGame),
       });
 
-      if (!response.ok) throw new Error('Failed to save game');
+      const data = await parseJsonSafe(response);
+      if (!response.ok) {
+        console.error('Save game error:', data);
+        throw new Error(data?.error || `Failed to save game (${response.status})`);
+      }
       
       setSuccess('Game saved successfully!');
       await fetchGames();
@@ -414,7 +418,8 @@ export default function AdminDashboard() {
       setSelectedGame(null);
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
-      setError('Failed to save game');
+      const message = (err as any)?.message || 'Failed to save game';
+      setError(message);
     } finally {
       setSaving(false);
     }

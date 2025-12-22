@@ -125,12 +125,36 @@ export default function Home() {
     let mounted = true;
     const fetchPopular = async () => {
       try {
-        const { data } = await supabase.from('games').select('*').eq('is_popular', true).order('created_at', { ascending: false }).limit(3);
+        const { data } = await supabase
+          .from('games')
+          .select('*')
+          .eq('is_popular', true)
+          .order('created_at', { ascending: false })
+          .limit(3);
         if (!mounted) return;
-        if (data && Array.isArray(data)) {
-          setRecommendations((prev) => prev);
-          // store popular games on local state
+
+        if (data && Array.isArray(data) && data.length > 0) {
           setPopularGames(data as any);
+          return;
+        }
+
+        // Fallback (no pinned popular games yet): show well-known starter games,
+        // still pulling from DB so admin cover_image_url reflects in the UI.
+        const fallbackTitles = ['Box Breathing', 'Diaphragmatic Breathing', '4-7-8 Breathing'] as const;
+        const { data: fallbackData } = await supabase
+          .from('games')
+          .select('*')
+          .in('title', [...fallbackTitles]);
+
+        if (!mounted) return;
+        if (fallbackData && Array.isArray(fallbackData) && fallbackData.length > 0) {
+          const order = new Map<string, number>(fallbackTitles.map((t, i) => [t, i]));
+          const sorted = [...fallbackData].sort((a: any, b: any) => {
+            const ai = order.get(a?.title) ?? 999;
+            const bi = order.get(b?.title) ?? 999;
+            return ai - bi;
+          });
+          setPopularGames(sorted as any);
         }
       } catch (e) {
         console.error('Failed to fetch popular games:', e);
@@ -420,35 +444,47 @@ export default function Home() {
             <h2 className="text-3xl md:text-4xl font-bold text-primary mb-2">
               Most Popular Activities
             </h2>
-            <p className="text-lg font-medium text-pink-500">
-              Start with our most loved wellness exercises
-            </p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
             {popularGames.length > 0 ? (
-              popularGames.slice(0, 3).map((g) => {
+              popularGames.slice(0, 3).map((g, idx) => {
                 const slug = g.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+
+                const durationBySlug: Record<string, string | undefined> = {
+                  'diaphragmatic-breathing': '5-10 min',
+                  'four-seven-eight-breathing': '3-5 min',
+                };
+
+                const badge = durationBySlug[slug] ?? g.category;
+
                 return (
-                  <Link key={g.id} href={`/games/${slug}`} className="md:col-span-1 block">
-                    <Card className="border-4 border-gray-300 cursor-pointer hover:shadow-xl transition-all h-full overflow-hidden rounded-2xl">
-                      <div className="relative h-32 flex items-center justify-center bg-gray-100 overflow-hidden">
-                        {g.cover_image_url ? (
-                          <img src={g.cover_image_url} alt={g.title} className="absolute inset-0 w-full h-full object-cover" />
-                        ) : (
-                          <div className="absolute inset-0 bg-gray-200" />
-                        )}
-                      </div>
-                      <CardContent className="p-6 space-y-4 bg-white">
-                        <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-primary">{g.title}</h3>
-                        <p className="text-sm text-gray-600">{g.description}</p>
-                        <div className="flex items-center gap-2 text-sm text-accent font-semibold">
-                          <span>⭐ Most Popular</span>
+                  <Link key={g.id} href={`/games/${slug}`} className="md:col-span-1">
+                    <div className="bg-secondary/50 shadow-lg hover:shadow-xl transition-all h-full rounded-[32px] p-3">
+                      <div className="bg-white rounded-[32px] overflow-hidden h-full flex flex-col min-h-[240px]">
+                        <div className="relative h-[96px] bg-muted-foreground/15 flex items-center justify-center overflow-hidden">
+                          {g.cover_image_url ? (
+                            <img src={g.cover_image_url} alt={g.title} className="absolute inset-0 w-full h-full object-cover" />
+                          ) : (
+                            <span className="text-6xl" aria-hidden>
+                              {getIconComponent(g.icon)}
+                            </span>
+                          )}
                         </div>
-                        <Button className="w-full sm:w-auto bg-gradient-to-r text-xs sm:text-sm md:text-base from-primary to-accent hover:opacity-90 text-white font-semibold py-2 rounded-lg">
-                          Start Now
-                        </Button>
-                      </CardContent>
-                    </Card>
+
+                        <div className="px-6 pb-6 pt-3 flex-1 flex flex-col gap-3">
+                          <h3 className="inline-flex self-center items-center justify-center rounded-full bg-secondary/50 px-5 h-[28px] text-[14px] font-semibold leading-none text-primary whitespace-nowrap uppercase text-center">
+                            {g.title}
+                          </h3>
+                          <p className="text-sm text-primary/60 leading-relaxed">{g.description}</p>
+
+                          <div className="mt-auto pt-3 flex justify-center">
+                            <Button className="w-[120px] h-[32px] px-0 rounded-full bg-primary text-white hover:bg-primary/90 text-sm font-semibold leading-none">
+                              Start Now
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </Link>
                 );
               })
@@ -456,53 +492,75 @@ export default function Home() {
               // fallback static content if no popular games set
               <>
                 <Link href="/games/box-breathing" className="md:col-span-1">
-                  <Card className="border-4 border-gray-300 cursor-pointer hover:shadow-xl transition-all h-full overflow-hidden rounded-2xl">
-                    <div className="h-32 bg-gradient-to-r from-purple-400 to-pink-400 flex items-center justify-center">
-                      <span className="text-6xl">🫁</span>
-                    </div>
-                    <CardContent className="p-6 space-y-4 bg-white">
-                      <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-primary">Box Breathing</h3>
-                      <p className="text-sm text-gray-600">A simple breathing technique supported by CBT principles to help reduce stress.</p>
-                      <div className="flex items-center gap-2 text-sm text-accent font-semibold">
-                        <span>⭐ Most Popular</span>
+                  <div className="bg-secondary/50 shadow-lg hover:shadow-xl transition-all h-full rounded-[32px] p-3">
+                    <div className="bg-white rounded-[32px] overflow-hidden h-full flex flex-col min-h-[240px]">
+                      <div className="relative h-[96px] bg-muted-foreground/15 flex items-center justify-center overflow-hidden">
+                        <span className="text-6xl" aria-hidden>
+                          🫁
+                        </span>
                       </div>
-                      <Button className="w-full sm:w-auto bg-gradient-to-r text-xs sm:text-sm md:text-base from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-semibold py-2 rounded-lg">
-                        Start Now
-                      </Button>
-                    </CardContent>
-                  </Card>
+
+                      <div className="px-6 pb-6 pt-3 flex-1 flex flex-col gap-3">
+                        <h3 className="inline-flex self-center items-center justify-center rounded-full bg-secondary/50 px-5 h-[28px] text-[14px] font-semibold leading-none text-primary whitespace-nowrap uppercase text-center">
+                          Box Breathing
+                        </h3>
+                        <p className="text-sm text-primary/60 leading-relaxed">A simple breathing technique supported by CBT principles to help reduce stress.</p>
+                        <div className="mt-auto pt-3 flex justify-center">
+                          <Button className="w-[120px] h-[32px] px-0 rounded-full bg-primary text-white hover:bg-primary/90 text-sm font-semibold leading-none">
+                            Start Now
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </Link>
 
                 <Link href="/games/diaphragmatic-breathing" className="md:col-span-1">
-                  <Card className="border-4 border-gray-300 cursor-pointer hover:shadow-xl transition-all h-full overflow-hidden rounded-2xl">
-                    <div className="h-32 bg-gradient-to-r from-teal-400 to-cyan-400 flex items-center justify-center">
-                      <span className="text-6xl">💨</span>
+                  <div className="bg-secondary/50 shadow-lg hover:shadow-xl transition-all h-full rounded-[32px] p-3">
+                    <div className="bg-white rounded-[32px] overflow-hidden h-full flex flex-col min-h-[240px]">
+                      <div className="relative h-[96px] bg-muted-foreground/15 flex items-center justify-center overflow-hidden">
+                        <span className="text-6xl" aria-hidden>
+                          💨
+                        </span>
+                      </div>
+
+                      <div className="px-6 pb-6 pt-3 flex-1 flex flex-col gap-3">
+                        <h3 className="inline-flex self-center items-center justify-center rounded-full bg-secondary/50 px-5 h-[28px] text-[14px] font-semibold leading-none text-primary whitespace-nowrap uppercase text-center">
+                          Diaphragmatic Breathing
+                        </h3>
+                        <p className="text-sm text-primary/60 leading-relaxed">Deep belly breathing that activates your parasympathetic nervous system for instant calm.</p>
+                        <div className="mt-auto pt-3 flex justify-center">
+                          <Button className="w-[120px] h-[32px] px-0 rounded-full bg-primary text-white hover:bg-primary/90 text-sm font-semibold leading-none">
+                            Start Now
+                          </Button>
+                        </div>
+                      </div>
                     </div>
-                    <CardContent className="p-6 space-y-4 bg-white">
-                      <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-primary">Diaphragmatic Breathing</h3>
-                      <p className="text-sm text-gray-600">Deep belly breathing that activates your parasympathetic nervous system for instant calm.</p>
-                      <div className="text-sm text-gray-600 font-medium">5-10 min</div>
-                      <Button className="w-full sm:w-auto bg-gradient-to-r text-xs sm:text-sm md:text-base from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white font-semibold py-2 rounded-lg">
-                        Start Now
-                      </Button>
-                    </CardContent>
-                  </Card>
+                  </div>
                 </Link>
 
                 <Link href="/games/four-seven-eight-breathing" className="md:col-span-1">
-                  <Card className="border-4 border-gray-300 cursor-pointer hover:shadow-xl transition-all h-full overflow-hidden rounded-2xl">
-                    <div className="h-32 bg-gradient-to-r from-purple-500 to-blue-500 flex items-center justify-center">
-                      <span className="text-6xl">🌙</span>
+                  <div className="bg-secondary/50 shadow-lg hover:shadow-xl transition-all h-full rounded-[32px] p-3">
+                    <div className="bg-white rounded-[32px] overflow-hidden h-full flex flex-col min-h-[240px]">
+                      <div className="relative h-[96px] bg-muted-foreground/15 flex items-center justify-center overflow-hidden">
+                        <span className="text-6xl" aria-hidden>
+                          🌙
+                        </span>
+                      </div>
+
+                      <div className="px-6 pb-6 pt-3 flex-1 flex flex-col gap-3">
+                        <h3 className="inline-flex self-center items-center justify-center rounded-full bg-secondary/50 px-5 h-[28px] text-[14px] font-semibold leading-none text-primary whitespace-nowrap uppercase text-center">
+                          4-7-8 Breathing
+                        </h3>
+                        <p className="text-sm text-primary/60 leading-relaxed">The famous 4-7-8 technique for anxiety relief and better sleep.</p>
+                        <div className="mt-auto pt-3 flex justify-center">
+                          <Button className="w-[120px] h-[32px] px-0 rounded-full bg-primary text-white hover:bg-primary/90 text-sm font-semibold leading-none">
+                            Start Now
+                          </Button>
+                        </div>
+                      </div>
                     </div>
-                    <CardContent className="p-6 space-y-4 bg-white">
-                      <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-primary">4-7-8 Breathing</h3>
-                      <p className="text-sm text-gray-600">The famous 4-7-8 technique for anxiety relief and better sleep.</p>
-                      <div className="text-sm text-gray-600 font-medium">3-5 min</div>
-                      <Button className="w-full sm:w-auto bg-gradient-to-r text-xs sm:text-sm md:text-base from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white font-semibold py-2 rounded-lg">
-                        Start Now
-                      </Button>
-                    </CardContent>
-                  </Card>
+                  </div>
                 </Link>
               </>
             )}
