@@ -475,8 +475,8 @@ export default function PsychometricAssessment() {
                             </button>
                           </TooltipTrigger>
                           <TooltipContent 
-                            side="top" 
-                            sideOffset={12}
+                            side="bottom" 
+                            sideOffset={8}
                             className="z-[9999] w-64 sm:w-72 md:w-80 bg-white border-2 border-[#3C1F71]/20 text-[#3C1F71] shadow-2xl p-2 sm:p-3 rounded-lg"
                           >
                             <div className="space-y-2">
