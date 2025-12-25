@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
     const supabase = createAdminClient();
     
     const body = await request.json();
-    const { title, description, category, icon, color_from, color_to, cover_image_url, is_popular } = body;
+    const { title, description, category, icon, color_from, color_to, cover_image_url, is_popular, seo_title, seo_description, seo_keywords, seo_og_image, seo_og_title, seo_og_description } = body;
 
     if (!title || !description) {
       return NextResponse.json({ error: 'Title and description are required' }, { status: 400 });
@@ -103,6 +103,34 @@ export async function POST(request: NextRequest) {
         console.log('Could not save colors directly');
       }
 
+      // Save SEO metadata if provided
+      if (seo_title || seo_description || seo_keywords || seo_og_image || seo_og_title || seo_og_description) {
+        const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+        const pageUrl = `/games/${slug}`;
+        
+        const seoData = {
+          page_url: pageUrl,
+          title: seo_title || title,
+          description: seo_description || description,
+          keywords: seo_keywords || '',
+          og_image: seo_og_image || '',
+          og_title: seo_og_title || seo_title || title,
+          og_description: seo_og_description || seo_description || description,
+          twitter_card: 'summary_large_image',
+          updated_at: new Date().toISOString(),
+        };
+
+        // Upsert SEO metadata
+        const { error: seoError } = await supabase
+          .from('seo_metadata')
+          .upsert(seoData, { onConflict: 'page_url' });
+
+        if (seoError) {
+          console.error('Failed to save SEO metadata:', seoError);
+          // Don't fail the whole request for SEO errors
+        }
+      }
+
       // Re-fetch to ensure persisted fields (cover_image_url, is_popular, etc.)
       const { data: fetched, error: fetchErr } = await supabase
         .from('games')
@@ -135,7 +163,7 @@ export async function PUT(request: NextRequest) {
     const supabase = createAdminClient();
     
     const body = await request.json();
-    const { id, title, description, category, icon, color_from, color_to, cover_image_url, is_popular } = body;
+    const { id, title, description, category, icon, color_from, color_to, cover_image_url, is_popular, seo_title, seo_description, seo_keywords, seo_og_image, seo_og_title, seo_og_description } = body;
 
     if (!id) {
       return NextResponse.json({ error: 'Game ID is required' }, { status: 400 });
@@ -195,6 +223,34 @@ export async function PUT(request: NextRequest) {
       await supabase.from('games').update({ colors }).eq('id', id);
     } catch (err) {
       console.log('Could not save colors directly');
+    }
+
+    // Save SEO metadata if provided
+    if (seo_title || seo_description || seo_keywords || seo_og_image || seo_og_title || seo_og_description) {
+      const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+      const pageUrl = `/games/${slug}`;
+      
+      const seoData = {
+        page_url: pageUrl,
+        title: seo_title || title,
+        description: seo_description || description,
+        keywords: seo_keywords || '',
+        og_image: seo_og_image || '',
+        og_title: seo_og_title || seo_title || title,
+        og_description: seo_og_description || seo_description || description,
+        twitter_card: 'summary_large_image',
+        updated_at: new Date().toISOString(),
+      };
+
+      // Upsert SEO metadata
+      const { error: seoError } = await supabase
+        .from('seo_metadata')
+        .upsert(seoData, { onConflict: 'page_url' });
+
+      if (seoError) {
+        console.error('Failed to save SEO metadata:', seoError);
+        // Don't fail the whole request for SEO errors
+      }
     }
 
     // Re-fetch to ensure persisted fields (cover_image_url, is_popular, etc.)

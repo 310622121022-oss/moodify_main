@@ -13,15 +13,24 @@ function createAdminClient() {
   return createClient(supabaseUrl, supabaseKey);
 }
 
-// GET - Fetch all SEO metadata
+// GET - Fetch all SEO metadata or specific by page_url
 export async function GET(request: NextRequest) {
   try {
     const supabase = createAdminClient();
+    const { searchParams } = new URL(request.url);
+    const pageUrl = searchParams.get('page_url');
     
-    const { data, error } = await supabase
+    let query = supabase
       .from('seo_metadata')
-      .select('*')
-      .order('page_url', { ascending: true });
+      .select('*');
+    
+    if (pageUrl) {
+      query = query.eq('page_url', pageUrl);
+    } else {
+      query = query.order('page_url', { ascending: true });
+    }
+
+    const { data, error } = await query;
 
     if (error) throw error;
 

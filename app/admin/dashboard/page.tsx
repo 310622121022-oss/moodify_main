@@ -51,6 +51,13 @@ interface Game {
   color_to: string;
   cover_image_url?: string;
   is_popular?: boolean;
+  // SEO fields
+  seo_title?: string;
+  seo_description?: string;
+  seo_keywords?: string;
+  seo_og_image?: string;
+  seo_og_title?: string;
+  seo_og_description?: string;
 }
 
 interface Testimonial {
@@ -205,6 +212,40 @@ export default function AdminDashboard() {
     } catch (err) {
       console.error('Failed to load games:', err);
       setError('Failed to load games');
+    }
+  };
+
+  const fetchGameSeo = async (game: Game) => {
+    try {
+      const slug = game.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+      const pageUrl = `/games/${slug}`;
+      
+      const response = await fetch(`/api/admin/seo-metadata?page_url=${encodeURIComponent(pageUrl)}`);
+      const data = await parseJsonSafe(response);
+      if (response.ok && data.metadata) {
+        return data.metadata[0];
+      }
+    } catch (err) {
+      console.error('Failed to fetch game SEO:', err);
+    }
+    return null;
+  };
+
+  const handleGameSelect = async (game: Game) => {
+    setIsAddingGame(false);
+    const seo = await fetchGameSeo(game);
+    if (seo) {
+      setSelectedGame({
+        ...game,
+        seo_title: seo.title,
+        seo_description: seo.description,
+        seo_keywords: seo.keywords,
+        seo_og_image: seo.og_image,
+        seo_og_title: seo.og_title,
+        seo_og_description: seo.og_description,
+      });
+    } else {
+      setSelectedGame(game);
     }
   };
 
@@ -1190,7 +1231,7 @@ export default function AdminDashboard() {
                     {games.map((game) => (
                       <button
                         key={game.id}
-                        onClick={() => { setIsAddingGame(false); setSelectedGame(game); }}
+                        onClick={() => handleGameSelect(game)}
                         className={`w-full text-left p-3 rounded-lg border-2 transition-colors text-sm ${
                           selectedGame?.id === game.id
                             ? 'border-primary bg-primary/5'
@@ -1361,6 +1402,67 @@ export default function AdminDashboard() {
                           </div>
                         </div>
                       )}
+
+                      {/* SEO Section */}
+                      <div className="space-y-4 pt-4 border-t">
+                        <h3 className="text-lg font-medium">SEO Settings</h3>
+                        
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">SEO Title</label>
+                          <Input
+                            value={selectedGame.seo_title || ''}
+                            onChange={(e) => setSelectedGame({...selectedGame, seo_title: e.target.value})}
+                            placeholder="SEO title for this game page"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">SEO Description</label>
+                          <Textarea
+                            value={selectedGame.seo_description || ''}
+                            onChange={(e) => setSelectedGame({...selectedGame, seo_description: e.target.value})}
+                            placeholder="SEO description for this game page"
+                            rows={2}
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">SEO Keywords</label>
+                          <Input
+                            value={selectedGame.seo_keywords || ''}
+                            onChange={(e) => setSelectedGame({...selectedGame, seo_keywords: e.target.value})}
+                            placeholder="Comma-separated keywords"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">OG Image URL</label>
+                          <Input
+                            value={selectedGame.seo_og_image || ''}
+                            onChange={(e) => setSelectedGame({...selectedGame, seo_og_image: e.target.value})}
+                            placeholder="Open Graph image URL for social sharing"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">OG Title</label>
+                          <Input
+                            value={selectedGame.seo_og_title || ''}
+                            onChange={(e) => setSelectedGame({...selectedGame, seo_og_title: e.target.value})}
+                            placeholder="Open Graph title for social sharing"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium">OG Description</label>
+                          <Textarea
+                            value={selectedGame.seo_og_description || ''}
+                            onChange={(e) => setSelectedGame({...selectedGame, seo_og_description: e.target.value})}
+                            placeholder="Open Graph description for social sharing"
+                            rows={2}
+                          />
+                        </div>
+                      </div>
 
                       <div className="flex gap-2 pt-4">
                         <Button

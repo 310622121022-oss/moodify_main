@@ -12,6 +12,8 @@ export interface SeoMetadata {
   description: string;
   keywords: string;
   og_image: string;
+  og_title?: string;
+  og_description?: string;
   twitter_card: string;
 }
 
