@@ -13,26 +13,39 @@ function createAdminClient() {
   return createClient(supabaseUrl, supabaseKey);
 }
 
-// GET - Fetch all SEO metadata or specific by page_url
+// GET - Fetch all SEO metadata or specific by page_url or game_id
 export async function GET(request: NextRequest) {
   try {
     const supabase = createAdminClient();
     const { searchParams } = new URL(request.url);
     const pageUrl = searchParams.get('page_url');
-    
+    const gameId = searchParams.get('game_id');
+
     let query = supabase
       .from('seo_metadata')
       .select('*');
-    
+
     if (pageUrl) {
       query = query.eq('page_url', pageUrl);
+    } else if (gameId) {
+      console.log('Fetching SEO for gameId:', gameId);
+      query = query.eq('game_id', gameId);
     } else {
       query = query.order('page_url', { ascending: true });
     }
 
     const { data, error } = await query;
 
-    if (error) throw error;
+    console.log('SEO query result:', { data, error });
+
+    if (error) {
+      // If error is about game_id column not existing, return empty result
+      if (error.message && error.message.includes('game_id')) {
+        console.log('game_id column error, returning empty result');
+        return NextResponse.json({ metadata: [] });
+      }
+      throw error;
+    }
 
     return NextResponse.json({ metadata: data });
   } catch (error) {

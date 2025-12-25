@@ -24,6 +24,7 @@ interface SeoMetadata {
   og_description?: string;
   twitter_card: string;
   canonical_url?: string;
+  game_id?: string;
 }
 
 interface Book {
@@ -109,10 +110,45 @@ export default function AdminDashboard() {
   const [isAddingGame, setIsAddingGame] = useState(false);
   const [isAddingTestimonial, setIsAddingTestimonial] = useState(false);
   const [dragActive, setDragActive] = useState(false);
+  const getValidHexColor = (color: string | undefined): string => {
+    if (!color) return '#3B82F6';
+    
+    // If it's already a valid hex color, return it
+    if (/^#[0-9A-F]{6}$/i.test(color)) {
+      return color;
+    }
+    
+    // Map common Tailwind colors to hex
+    const tailwindColors: { [key: string]: string } = {
+      'blue-400': '#60A5FA',
+      'blue-500': '#3B82F6',
+      'blue-600': '#2563EB',
+      'cyan-400': '#22D3EE',
+      'cyan-500': '#06B6D4',
+      'cyan-600': '#0891B2',
+      'green-400': '#4ADE80',
+      'green-500': '#22C55E',
+      'purple-400': '#A78BFA',
+      'purple-500': '#8B5CF6',
+      'purple-600': '#7C3AED',
+      'pink-400': '#F472B6',
+      'pink-500': '#EC4899',
+      'red-400': '#F87171',
+      'red-500': '#EF4444',
+      'yellow-400': '#FACC15',
+      'yellow-500': '#EAB308',
+      'indigo-400': '#818CF8',
+      'indigo-500': '#6366F1',
+      'teal-400': '#2DD4BF',
+      'teal-500': '#14B8A6',
+    };
+    
+    return tailwindColors[color] || '#3B82F6';
+  };
 
   useEffect(() => {
     checkAdminAndFetch();
-  }, [user]);
+  }, []);
 
   const withTimeout = async (promise: Promise<any>, timeoutMs: number = 8000) => {
     return Promise.race([
@@ -217,11 +253,19 @@ export default function AdminDashboard() {
 
   const fetchGameSeo = async (game: Game) => {
     try {
-      const slug = game.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
-      const pageUrl = `/games/${slug}`;
+      // First try with game_id
+      let response = await fetch(`/api/admin/seo-metadata?game_id=${game.id}`);
+      let data = await parseJsonSafe(response);
       
-      const response = await fetch(`/api/admin/seo-metadata?page_url=${encodeURIComponent(pageUrl)}`);
-      const data = await parseJsonSafe(response);
+      // If game_id query fails or returns no data, try with page_url as fallback
+      if (!response.ok || !data.metadata || data.metadata.length === 0) {
+        const slug = game.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+        const pageUrl = `/games/${slug}`;
+        
+        response = await fetch(`/api/admin/seo-metadata?page_url=${encodeURIComponent(pageUrl)}`);
+        data = await parseJsonSafe(response);
+      }
+      
       if (response.ok && data.metadata && data.metadata.length > 0) {
         return data.metadata[0];
       }
@@ -234,6 +278,7 @@ export default function AdminDashboard() {
   const handleGameSelect = async (game: Game) => {
     setIsAddingGame(false);
     const seo = await fetchGameSeo(game);
+    
     if (seo) {
       setSelectedGame({
         ...game,
@@ -245,7 +290,16 @@ export default function AdminDashboard() {
         seo_og_description: seo.og_description,
       });
     } else {
-      setSelectedGame(game);
+      // Initialize SEO fields as empty strings to prevent null value warnings
+      setSelectedGame({
+        ...game,
+        seo_title: '',
+        seo_description: '',
+        seo_keywords: '',
+        seo_og_image: '',
+        seo_og_title: '',
+        seo_og_description: '',
+      });
     }
   };
 
@@ -652,7 +706,16 @@ export default function AdminDashboard() {
   };
 
   if (loading) {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div>Loading...</div>
+          <div className="text-sm text-muted-foreground mt-2">
+            User: {user ? user.email : 'Not logged in'}
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -1298,12 +1361,12 @@ export default function AdminDashboard() {
                           <div className="flex gap-2">
                             <Input
                               type="color"
-                              value={selectedGame.color_from}
+                              value={getValidHexColor(selectedGame.color_from)}
                               onChange={(e) => setSelectedGame({...selectedGame, color_from: e.target.value})}
                               className="w-12 h-10"
                             />
                             <Input
-                              value={selectedGame.color_from}
+                              value={selectedGame.color_from || '#3B82F6'}
                               onChange={(e) => setSelectedGame({...selectedGame, color_from: e.target.value})}
                               placeholder="#3B82F6"
                               className="flex-1"
@@ -1316,12 +1379,12 @@ export default function AdminDashboard() {
                           <div className="flex gap-2">
                             <Input
                               type="color"
-                              value={selectedGame.color_to}
+                              value={getValidHexColor(selectedGame.color_to)}
                               onChange={(e) => setSelectedGame({...selectedGame, color_to: e.target.value})}
                               className="w-12 h-10"
                             />
                             <Input
-                              value={selectedGame.color_to}
+                              value={selectedGame.color_to || '#8B5CF6'}
                               onChange={(e) => setSelectedGame({...selectedGame, color_to: e.target.value})}
                               placeholder="#8B5CF6"
                               className="flex-1"
@@ -1387,7 +1450,7 @@ export default function AdminDashboard() {
                       {selectedGame.cover_image_url && (
                         <div className="space-y-2">
                           <label className="text-sm font-medium">Cover Preview</label>
-                          <div className="w-full h-48 rounded-lg overflow-hidden flex items-center justify-center border-2 border-dashed border-gray-300" style={{background: `linear-gradient(135deg, ${selectedGame.color_from} 0%, ${selectedGame.color_to} 100%)`}}>
+                          <div className="w-full h-48 rounded-lg overflow-hidden flex items-center justify-center border-2 border-dashed border-gray-300" style={{background: `linear-gradient(135deg, ${getValidHexColor(selectedGame.color_from)} 0%, ${getValidHexColor(selectedGame.color_to)} 100%)`}}>
                             <img
                               src={selectedGame.cover_image_url}
                               alt={selectedGame.title}

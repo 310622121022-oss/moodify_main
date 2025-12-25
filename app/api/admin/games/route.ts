@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
       // Save SEO metadata - always attempt for games to allow clearing SEO data
       const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
       const pageUrl = `/games/${slug}`;
-      
+
       const seoData = {
         page_url: pageUrl,
         title: seo_title || title,
@@ -119,15 +119,34 @@ export async function POST(request: NextRequest) {
         updated_at: new Date().toISOString(),
       };
 
-        // Upsert SEO metadata
-        const { error: seoError } = await supabase
-          .from('seo_metadata')
-          .upsert(seoData, { onConflict: 'page_url' });
+      console.log('SEO data to save:', seoData);
+      console.log('Game ID:', gameId);
 
-        if (seoError) {
-          console.error('Failed to save SEO metadata:', seoError);
-          // Don't fail the whole request for SEO errors
-        }
+      // Try to use game_id if column exists, otherwise use page_url
+      let upsertData = seoData;
+      let onConflictKey = 'page_url';
+      try {
+        // Check if game_id column exists by trying to select it
+        await supabase.from('seo_metadata').select('game_id').limit(1);
+        // If no error, game_id column exists
+        upsertData = { ...seoData, game_id: gameId };
+        onConflictKey = 'game_id';
+      } catch (error) {
+        // game_id column doesn't exist, use page_url only
+        console.log('game_id column not found, using page_url only');
+      }
+
+      // Upsert SEO metadata
+      const { error: seoError } = await supabase
+        .from('seo_metadata')
+        .upsert(upsertData, { onConflict: onConflictKey });
+
+      if (seoError) {
+        console.error('Failed to save SEO metadata:', seoError);
+        // Don't fail the whole request for SEO errors
+      } else {
+        console.log('SEO metadata saved successfully with data:', upsertData);
+      }
 
       // Re-fetch to ensure persisted fields (cover_image_url, is_popular, etc.)
       const { data: fetched, error: fetchErr } = await supabase
@@ -239,10 +258,22 @@ export async function PUT(request: NextRequest) {
         updated_at: new Date().toISOString(),
       };
 
+      // Try to use game_id if column exists, otherwise use page_url
+      let upsertData = seoData;
+      try {
+        // Check if game_id column exists by trying to select it
+        await supabase.from('seo_metadata').select('game_id').limit(1);
+        // If no error, game_id column exists
+        upsertData = { ...seoData, game_id: id };
+      } catch (error) {
+        // game_id column doesn't exist, use page_url only
+        console.log('game_id column not found, using page_url only');
+      }
+
       // Upsert SEO metadata
       const { error: seoError } = await supabase
         .from('seo_metadata')
-        .upsert(seoData, { onConflict: 'page_url' });
+        .upsert(upsertData, { onConflict: 'page_url' });
 
       if (seoError) {
         console.error('Failed to save SEO metadata:', seoError);
