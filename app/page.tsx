@@ -3,11 +3,9 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Sparkles, ClipboardList, LogOut, User as UserIcon, Menu, X, Flame } from 'lucide-react';
+import { Sparkles, ClipboardList, User as UserIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth-context';
-import { useStreak } from '@/hooks/use-streak';
-import { generateInitials, getAvatarColor, getAvatarTextColor } from '@/lib/streak-utils';
 import { AuthModal } from '@/components/auth-modal';
 import { GoogleSignInPopup } from '@/components/google-signin-popup';
 import { TestimonialCarousel } from '@/components/testimonial-carousel';
@@ -19,14 +17,7 @@ import { supabase } from '@/lib/supabase';
 import { saveDailyMood, getGameRecommendations, getTodaysMood, type MoodType } from '@/lib/mood-service';
 import { AppFooter } from '@/components/app-footer';
 import StructuredData from '@/components/structured-data';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { HomeNavbar } from '@/components/home-navbar';
 
 type Game = {
   id: string;
@@ -41,19 +32,12 @@ type Game = {
 };
 
 export default function Home() {
-  const { user, signOut } = useAuth();
-  const { streakData } = useStreak();
+  const { user } = useAuth();
   const router = useRouter();
   const [selectedMood, setSelectedMood] = useState<string | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [recommendations, setRecommendations] = useState<Game[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
-
-  const displayName = user?.user_metadata?.full_name || user?.email || 'User';
-  const initials = generateInitials(displayName);
-  const bgColor = getAvatarColor(displayName);
-  const textColor = getAvatarTextColor(displayName);
 
   useEffect(() => {
     let cancelled = false;
@@ -113,9 +97,6 @@ export default function Home() {
     }
   };
 
-  const handleSignOut = async () => {
-    await signOut();
-  };
 
   const handleMoodSelect = async (moodId: string) => {
     setSelectedMood(moodId);
@@ -304,142 +285,15 @@ export default function Home() {
           }
         ]
       }} />
-      <nav className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16 flex-wrap">
-            <div className="flex items-center gap-2">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center">
-                <Sparkles className="w-6 h-6 text-white" />
-              </div>
-              <span className="text-xl sm:text-lg sm:text-xl md:text-2xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                MoodLift
-              </span>
-            </div>
-            
-            {/* Desktop Navigation */}
-            <div className="hidden md:flex items-center gap-4">
-              <Button variant="ghost" size="sm" onClick={handleAssessmentClick}>
-                <ClipboardList className="w-4 h-4 mr-2" />
-                Mood Check
-              </Button>
-              {user && (
-                <>
-                  <Link href="/games" title="Explore wellness games and activities">
-                    <Button variant="ghost" size="sm">Games</Button>
-                  </Link>
-                  <Link href="/discover" title="Discover personalized recommendations">
-                    <Button variant="ghost" size="sm">Discover</Button>
-                  </Link>
-                  <Link href="/dashboard" title="View your progress and achievements">
-                    <Button variant="ghost" size="sm">Dashboard</Button>
-                  </Link>
-                </>
-              )}
-              {user ? (
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button className="p-0 bg-transparent hover:bg-transparent">
-                      <div className="relative">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold text-sm ${bgColor} ${textColor} border-2 border-purple-200`}>
-                          {initials}
-                        </div>
-                        {streakData?.currentStreak && streakData.currentStreak > 0 && (
-                          <div className="absolute -bottom-2 -right-2 bg-white rounded-full px-2 py-1 shadow-md border border-gray-200 flex items-center gap-1">
-                            <Flame className="w-3 h-3" style={{ color: '#FF6B35' }} />
-                            <span className="text-xs font-bold" style={{ color: '#FF6B35' }}>{streakData.currentStreak}</span>
-                          </div>
-                        )}
-                      </div>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuLabel>My Account</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={handleSignOut}>
-                      <LogOut className="w-4 h-4 mr-2" />
-                      Logout
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              ) : (
-                <Button onClick={() => setShowAuthModal(true)} size="sm" style={{ backgroundColor: '#3C1F71' }}>
-                  Login
-                </Button>
-              )}
-            </div>
-
-            {/* Mobile Menu Button */}
-            <Button 
-              variant="ghost" 
-              size="sm"
-              className="md:hidden"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            >
-              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </Button>
-          </div>
-
-          {/* Mobile Navigation */}
-          {mobileMenuOpen && (
-            <div className="md:hidden pb-4 space-y-2 border-t">
-              <Button 
-                variant="ghost" 
-                className="w-full justify-start text-sm"
-                onClick={() => {
-                  handleAssessmentClick();
-                  setMobileMenuOpen(false);
-                }}
-              >
-                <ClipboardList className="w-4 h-4 mr-2" />
-                Mood Check
-              </Button>
-              {user && (
-                <>
-                  <Link href="/games" className="block" title="Explore wellness games and activities">
-                    <Button variant="ghost" className="w-full justify-start text-sm">
-                      Games
-                    </Button>
-                  </Link>
-                  <Link href="/discover" className="block" title="Discover personalized recommendations">
-                    <Button variant="ghost" className="w-full justify-start text-sm">
-                      Discover
-                    </Button>
-                  </Link>
-                  <Link href="/dashboard" className="block" title="View your progress and achievements">
-                    <Button variant="ghost" className="w-full justify-start text-sm">
-                      Dashboard
-                    </Button>
-                  </Link>
-                </>
-              )}
-              {user ? (
-                <Button 
-                  variant="ghost" 
-                  className="w-full justify-start text-sm"
-                  onClick={() => {
-                    handleSignOut();
-                    setMobileMenuOpen(false);
-                  }}
-                >
-                  <LogOut className="w-4 h-4 mr-2" />
-                  Logout
-                </Button>
-              ) : (
-                <Button 
-                  onClick={() => {
-                    setShowAuthModal(true);
-                    setMobileMenuOpen(false);
-                  }} 
-                  className="w-full text-sm"
-                  style={{ backgroundColor: '#3C1F71' }}
-                >
-                  Login
-                </Button>
-              )}
-            </div>
-          )}
-        </div>
-      </nav>
+      <HomeNavbar
+        authModal={{
+          isOpen: showAuthModal,
+          onClose: () => setShowAuthModal(false),
+          onSuccess: handleAuthSuccess,
+          open: () => setShowAuthModal(true),
+        }}
+        onMoodCheckClick={handleAssessmentClick}
+      />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 md:py-12">
         <div className="text-center mb-8 sm:mb-12 md:mb-16 space-y-4">
@@ -714,12 +568,6 @@ export default function Home() {
       </main>
 
       <AppFooter />
-
-      <AuthModal
-        isOpen={showAuthModal}
-        onClose={() => setShowAuthModal(false)}
-        onSuccess={handleAuthSuccess}
-      />
 
       <GoogleSignInPopup />
     </div>

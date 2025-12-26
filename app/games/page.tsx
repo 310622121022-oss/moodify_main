@@ -2,13 +2,13 @@
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { ArrowLeft, Gamepad2, Heart } from 'lucide-react';
+import { Gamepad2, Heart } from 'lucide-react';
 import Link from 'next/link';
 import { GamesSection } from '@/components/games-section';
-import { UserProfile } from '@/components/user-profile';
 import { FAQSection } from '@/components/faq-section';
 import { AppFooter } from '@/components/app-footer';
 import StructuredData from '@/components/structured-data';
+import { HomeNavbar } from '@/components/home-navbar';
 
 function GamesHubContent() {
   return (
@@ -33,22 +33,7 @@ function GamesHubContent() {
           { "@type": "ListItem", "position": 3, "url": "https://your-production-url.example.com/games/four-seven-eight-breathing", "name": "4-7-8 Breathing" }
         ]
       }} />
-      <nav className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-4">
-              <Link href="/" title="Go back to MoodLift home page">
-                <Button size="sm" className="bg-gradient-to-r from-primary to-accent hover:opacity-90 text-white">
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  Home
-                </Button>
-              </Link>
-              <h1 className="text-xl font-bold text-primary">Games & Activities</h1>
-            </div>
-            <UserProfile />
-          </div>
-        </div>
-      </nav>
+      <HomeNavbar />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 md:py-12">
         <section className="mb-8 sm:mb-12 md:mb-16">

@@ -2,10 +2,9 @@
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, TrendingUp, Heart, Sparkles, Trophy, Calendar, Flame } from 'lucide-react';
+import { TrendingUp, Heart, Sparkles, Trophy, Calendar, Flame } from 'lucide-react';
 import Link from 'next/link';
 import { ProtectedRoute } from '@/components/protected-route';
-import { UserProfile } from '@/components/user-profile';
 import { AppFooter } from '@/components/app-footer';
 import { useStreak } from '@/hooks/use-streak';
 import { useEffect, useState } from 'react';
@@ -14,6 +13,7 @@ import { useAuth } from '@/lib/auth-context';
 import { getUserProgress, getContributionHeatmap } from '@/lib/progress-service';
 import StructuredData from '@/components/structured-data';
 import TodoList from '@/components/todo-list';
+import { HomeNavbar } from '@/components/home-navbar';
 
 interface RecentActivity {
   id: string;
@@ -147,22 +147,7 @@ function DashboardContent() {
         "description": "Personal dashboard showing your streaks, points and recent activities"
       }} />
       {personSchema && <StructuredData script={personSchema} />}
-      <nav className="border-b bg-white/80 backdrop-blur-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-4">
-              <Link href="/" title="Go back to MoodLift home page">
-                <Button size="sm" className="bg-gradient-to-r from-primary to-accent hover:opacity-90 text-white">
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  Home
-                </Button>
-              </Link>
-              <h1 className="text-xl font-bold text-primary">Your Wellness Dashboard</h1>
-            </div>
-            <UserProfile />
-          </div>
-        </div>
-      </nav>
+      <HomeNavbar />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 md:py-12">
         <div className="mb-8">

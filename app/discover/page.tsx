@@ -2,35 +2,20 @@
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Gamepad2, BookOpen, Heart } from 'lucide-react';
+import { Gamepad2, BookOpen, Heart } from 'lucide-react';
 import Link from 'next/link';
 import { ProtectedRoute } from '@/components/protected-route';
 import { BooksSection } from '@/components/books-section';
 import { FavoritesSection } from '@/components/favorites-section';
 import { GamesSection } from '@/components/games-section';
-import { UserProfile } from '@/components/user-profile';
 import { FAQSection } from '@/components/faq-section';
 import { AppFooter } from '@/components/app-footer';
+import { HomeNavbar } from '@/components/home-navbar';
 
 function DiscoverContent() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-white via-secondary/20 to-accent/10">
-      <nav className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-4">
-              <Link href="/" title="Go back to MoodLift home page">
-                <Button size="sm" className="bg-gradient-to-r from-primary to-accent hover:opacity-90 text-white">
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  Home
-                </Button>
-              </Link>
-              <h1 className="text-xl font-bold text-primary">Discover</h1>
-            </div>
-            <UserProfile />
-          </div>
-        </div>
-      </nav>
+      <HomeNavbar />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 md:py-12">
         <Card className="mb-12 overflow-hidden border-2 border-secondary/80 bg-accent/20">

@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Brain, ArrowLeft, CheckCircle2, Sparkles, TrendingUp, Loader2, Heart, Activity, Gamepad2, Info } from 'lucide-react';
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
+import { HomeNavbar } from '@/components/home-navbar';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { AppFooter } from '@/components/app-footer';
@@ -463,34 +465,21 @@ export default function PsychometricAssessment() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#E2DAF5] via-white to-[#E2DAF5]">
-      <nav className="border-b bg-white/80 backdrop-blur-sm">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-4">
-              {selectedTest ? (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setSelectedTest(null)}
-                  className="bg-[#E2DAF5] hover:bg-[#3C1F71] text-[#3C1F71] hover:text-white transition-colors px-4 py-2 rounded-lg font-medium"
-                >
-                  Back
-                </Button>
-              ) : (
-                <Link href="/" title="Go back to MoodLift home page">
-                  <Button variant="ghost" size="sm" className="bg-[#E2DAF5] hover:bg-[#3C1F71] text-[#3C1F71] hover:text-white transition-colors px-4 py-2 rounded-lg font-medium">
-                    Back
-                  </Button>
-                </Link>
-              )}
-            </div>
-            <h1 className="text-xl font-bold text-[#3C1F71]">Mood Assessment</h1>
-            <div className="w-20"></div>
-          </div>
-        </div>
-      </nav>
+      <HomeNavbar />
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 md:py-12">
+        {selectedTest ? (
+          <div className="mb-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSelectedTest(null)}
+              className="bg-[#E2DAF5] hover:bg-[#3C1F71] text-[#3C1F71] hover:text-white transition-colors px-4 py-2 rounded-lg font-medium"
+            >
+              Back
+            </Button>
+          </div>
+        ) : null}
         {!selectedTest && (
           <>
             <Card className="mb-8 border-2 border-[#3C1F71]/20">
@@ -519,37 +508,83 @@ export default function PsychometricAssessment() {
                       <div className={`h-2 bg-gradient-to-r ${test.gradient}`} />
                       {/* Info Icon - Top Right */}
                       <div className="absolute -top-3 -right-3 z-10">
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <button className="p-2 rounded-full bg-gradient-to-r from-[#3C1F71] to-[#5B3A8F] hover:shadow-lg transition-all hover:scale-110 shadow-md">
-                              <Info className="w-5 h-5 text-white" />
-                            </button>
-                          </TooltipTrigger>
-                          <TooltipContent 
-                            side="bottom" 
-                            sideOffset={8}
-                            className="z-[9999] w-64 sm:w-72 md:w-80 bg-white border-2 border-[#3C1F71]/20 text-[#3C1F71] shadow-2xl p-2 sm:p-3 rounded-lg"
-                          >
-                            <div className="space-y-2">
-                              <div>
-                                <p className="font-semibold text-[#3C1F71] text-xs sm:text-sm">Inventor</p>
-                                <p className="text-[#3C1F71]/80 text-xs leading-tight">{test.info.inventor}</p>
+                        {/* Mobile: click popover (tooltips are hover-based and unreliable on touch) */}
+                        <div className="sm:hidden">
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <button
+                                type="button"
+                                className="p-2 rounded-full bg-gradient-to-r from-[#3C1F71] to-[#5B3A8F] hover:shadow-lg transition-all hover:scale-110 shadow-md"
+                                aria-label="Assessment info"
+                              >
+                                <Info className="w-5 h-5 text-white" />
+                              </button>
+                            </PopoverTrigger>
+                            <PopoverContent
+                              side="bottom"
+                              sideOffset={8}
+                              className="z-[9999] w-72 max-w-[calc(100vw-2rem)] bg-white border-2 border-[#3C1F71]/20 text-[#3C1F71] shadow-2xl p-3 rounded-lg"
+                            >
+                              <div className="space-y-2">
+                                <div>
+                                  <p className="font-semibold text-[#3C1F71] text-sm">Inventor</p>
+                                  <p className="text-[#3C1F71]/80 text-xs leading-tight">{test.info.inventor}</p>
+                                </div>
+                                <div>
+                                  <p className="font-semibold text-[#3C1F71] text-sm">Purpose</p>
+                                  <p className="text-[#3C1F71]/80 text-xs leading-tight">{test.info.reason}</p>
+                                </div>
+                                <div>
+                                  <p className="font-semibold text-[#3C1F71] text-sm">Certification</p>
+                                  <p className="text-[#3C1F71]/80 text-xs leading-tight">{test.info.certifiedBy}</p>
+                                </div>
+                                <div>
+                                  <p className="font-semibold text-[#3C1F71] text-sm">Details</p>
+                                  <p className="text-[#3C1F71]/80 text-xs leading-tight">{test.info.details}</p>
+                                </div>
                               </div>
-                              <div>
-                                <p className="font-semibold text-[#3C1F71] text-xs sm:text-sm">Purpose</p>
-                                <p className="text-[#3C1F71]/80 text-xs leading-tight">{test.info.reason}</p>
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+
+                        {/* Desktop+: hover tooltip */}
+                        <div className="hidden sm:block">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button
+                                type="button"
+                                className="p-2 rounded-full bg-gradient-to-r from-[#3C1F71] to-[#5B3A8F] hover:shadow-lg transition-all hover:scale-110 shadow-md"
+                                aria-label="Assessment info"
+                              >
+                                <Info className="w-5 h-5 text-white" />
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent
+                              side="bottom"
+                              sideOffset={8}
+                              className="z-[9999] w-64 sm:w-72 md:w-80 bg-white border-2 border-[#3C1F71]/20 text-[#3C1F71] shadow-2xl p-2 sm:p-3 rounded-lg"
+                            >
+                              <div className="space-y-2">
+                                <div>
+                                  <p className="font-semibold text-[#3C1F71] text-xs sm:text-sm">Inventor</p>
+                                  <p className="text-[#3C1F71]/80 text-xs leading-tight">{test.info.inventor}</p>
+                                </div>
+                                <div>
+                                  <p className="font-semibold text-[#3C1F71] text-xs sm:text-sm">Purpose</p>
+                                  <p className="text-[#3C1F71]/80 text-xs leading-tight">{test.info.reason}</p>
+                                </div>
+                                <div>
+                                  <p className="font-semibold text-[#3C1F71] text-xs sm:text-sm">Certification</p>
+                                  <p className="text-[#3C1F71]/80 text-xs leading-tight">{test.info.certifiedBy}</p>
+                                </div>
+                                <div>
+                                  <p className="font-semibold text-[#3C1F71] text-xs sm:text-sm">Details</p>
+                                  <p className="text-[#3C1F71]/80 text-xs leading-tight">{test.info.details}</p>
+                                </div>
                               </div>
-                              <div>
-                                <p className="font-semibold text-[#3C1F71] text-xs sm:text-sm">Certification</p>
-                                <p className="text-[#3C1F71]/80 text-xs leading-tight">{test.info.certifiedBy}</p>
-                              </div>
-                              <div>
-                                <p className="font-semibold text-[#3C1F71] text-xs sm:text-sm">Details</p>
-                                <p className="text-[#3C1F71]/80 text-xs leading-tight">{test.info.details}</p>
-                              </div>
-                            </div>
-                          </TooltipContent>
-                        </Tooltip>
+                            </TooltipContent>
+                          </Tooltip>
+                        </div>
                       </div>
                       <CardContent className="p-6">
                         <div className="flex flex-col items-center text-center">
